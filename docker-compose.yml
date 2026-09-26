@@ -1,0 +1,50 @@
+name: verdixa
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: verdixa
+      POSTGRES_PASSWORD: verdixa_dev_password
+      POSTGRES_DB: verdixa
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Real healthcheck — app waits for this before starting.
+    # Avoids the "works on my machine, fails on clean clone" fixed-sleep bug. See blueprint §16.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verdixa -d verdixa"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://verdixa:verdixa_dev_password@postgres:5432/verdixa
+      # SESSION_SECRET: Must be overridden in production. Startup will fail if left as default.
+      # Generate with: openssl rand -hex 32
+      SESSION_SECRET: "CHANGE_ME_IN_PRODUCTION_use_openssl_rand_hex_32"
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Persistent upload volume — screenshots stored here, served through controlled route
+      - uploads:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  pgdata:
+  uploads:

@@ -1,0 +1,20 @@
+# Example .dogfood.toml for Dogfood 2026 acceptance verification
+[portal]
+base_url = "http://localhost:3000"
+
+[tiers]
+claimed = ["T1"]
+pitch = "VERDIXA is an integrity-first, self-hostable hackathon submission and judging operating system."
+
+[auth]
+organizer = "Cookie: verdixa_session=example_organizer_token"
+judge_a = "Cookie: verdixa_session=example_judge_a_token"
+judge_b = "Cookie: verdixa_session=example_judge_b_token"
+participant = "Cookie: verdixa_session=example_participant_token"
+
+[routes]
+gallery = "/gallery"
+submit = "/api/v1/projects"
+judge_scores = "/api/v1/scores/me"
+peer_scores = "/api/v1/scores/me"
+csv_export = "/api/v1/export/scores.csv"

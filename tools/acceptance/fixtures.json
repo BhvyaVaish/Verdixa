@@ -1,0 +1,18 @@
+{
+  "event": {
+    "name": "Dogfood 2026",
+    "submissions_close": "2026-09-20T00:00:00Z"
+  },
+  "tracks": ["Main", "Bonus"],
+  "judges": [
+    { "id": "judge_a", "email": "judge_a@verdixa.dev" },
+    { "id": "judge_b", "email": "judge_b@verdixa.dev" }
+  ],
+  "teams": [
+    { "id": "team_1", "name": "Team One", "participant_email": "participant@verdixa.dev" }
+  ],
+  "projects": [
+    { "id": "proj_1", "title": "Fixture Project Title", "team_id": "team_1" }
+  ],
+  "scores": []
+}

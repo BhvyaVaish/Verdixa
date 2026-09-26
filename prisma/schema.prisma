@@ -1,0 +1,216 @@
+// VERDIXA — Prisma Schema
+// DATA-MODEL.md is the authoritative field-level documentation.
+// Chief Architect owns this file. No slice agent may add/remove/rename fields
+// without an ADR entry in docs/. ADR-001 = Phase 1 baseline. ADR-002 = Phase 2 additions.
+
+generator client {
+  provider      = "prisma-client-js"
+  // Vendor query engine binaries so Docker images never need a network call at runtime.
+  // See blueprint §16.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  participant
+  judge
+  organizer
+  admin
+}
+
+enum EventStatus {
+  draft
+  open
+  judging
+  closed
+}
+
+/// ADR-002: Phase 2 addition
+enum ProjectStatus {
+  draft
+  submitted
+  disqualified
+}
+
+// ─── Identity ─────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  /// Server-owned: never set by the client directly.
+  role         Role     @default(participant)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions        Session[]
+  teamMemberships TeamMember[]
+  invitesSent     TeamInvite[] @relation("InviteSentBy")
+  organizedEvents Event[]      @relation("OrganizerEvents")
+  auditLogs       AuditLog[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  /// Opaque token stored in signed HttpOnly cookie. Server verifies HMAC on each request.
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+// ─── Events ───────────────────────────────────────────────────────────────────
+
+model Event {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  /// ADR-002: Server-side submission cutoff. The server reads this — client timestamps are
+  /// NEVER trusted. Null means no deadline (organizer closes manually via status transition).
+  submissionDeadline DateTime?
+  status      EventStatus @default(draft)
+  organizerId String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  organizer User      @relation("OrganizerEvents", fields: [organizerId], references: [id])
+  tracks    Track[]
+  teams     Team[]
+  projects  Project[]
+}
+
+model Track {
+  id      String @id @default(cuid())
+  name    String
+  eventId String
+
+  event    Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  projects Project[]
+}
+
+// ─── Teams ────────────────────────────────────────────────────────────────────
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  event    Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  members  TeamMember[]
+  invites  TeamInvite[]
+  projects Project[]
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+model TeamInvite {
+  id        String    @id @default(cuid())
+  teamId    String
+  /// Random URL-safe token; single-use.
+  token     String    @unique
+  createdBy String
+  /// Null until the invite is accepted.
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  team    Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  creator User @relation("InviteSentBy", fields: [createdBy], references: [id])
+
+  @@index([token])
+}
+
+// ─── Submissions (ADR-002: Phase 2) ──────────────────────────────────────────
+
+/// A team's hackathon submission. One project per team per event.
+model Project {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  repoUrl     String?
+  demoUrl     String?
+  videoUrl    String?
+  status      ProjectStatus @default(draft)
+  /// Set when status transitions to submitted.
+  submittedAt DateTime?
+  /// Set when submission is locked (same moment as submittedAt for explicit finalize,
+  /// or when the event's submissionDeadline passes and status is auto-closed by the server).
+  lockedAt    DateTime?
+
+  teamId   String
+  eventId  String
+  trackId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  track       Track?       @relation(fields: [trackId], references: [id])
+  mediaAssets MediaAsset[]
+
+  @@unique([teamId, eventId]) // One submission per team per event
+  @@index([eventId, status])
+  @@index([teamId])
+}
+
+/// Screenshot assets for a project. Validated extension + MIME sniff + size cap.
+/// Stored under randomized filenames — never the original name. See blueprint §7.
+model MediaAsset {
+  id           String   @id @default(cuid())
+  projectId    String
+  /// Randomized UUID-based filename (e.g., "a1b2c3d4.webp"). Never the original.
+  filename     String   @unique
+  /// Original filename stored for display only, never used for serving.
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  /// Relative path under the uploads volume root (e.g., "uploads/a1b2c3d4.webp")
+  storagePath  String
+  createdAt    DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ─── Audit ────────────────────────────────────────────────────────────────────
+
+/// Non-trivial mutations write a record here in the same transaction.
+/// See blueprint §10 and §17.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  /// JSON snapshot of relevant changed fields (before/after where meaningful).
+  payload    Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+}

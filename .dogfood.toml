@@ -1,0 +1,20 @@
+[portal]
+base_url = "http://localhost:3000"
+
+[tiers]
+claimed = ["T1"]
+pitch = "VERDIXA is an integrity-first, self-hostable hackathon submission and judging operating system."
+
+[auth]
+organizer = "# not yet generated — seed script lands in Phase 3"
+judge_a = "# not yet generated — seed script lands in Phase 3"
+judge_b = "# not yet generated — seed script lands in Phase 3"
+participant = "# not yet generated — seed script lands in Phase 3"
+
+[routes]
+# Route definitions will be finalized in Phase 3 when judge scoring and export endpoints land
+# gallery = "/gallery"
+# submit = "/api/v1/projects"
+# judge_scores = "/api/v1/scores/me"
+# peer_scores = "/api/v1/scores/me"
+# csv_export = "/api/v1/export/scores.csv"
