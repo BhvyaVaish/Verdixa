@@ -1,7 +1,10 @@
 // VERDIXA — Prisma Schema
 // DATA-MODEL.md is the authoritative field-level documentation.
 // Chief Architect owns this file. No slice agent may add/remove/rename fields
-// without an ADR entry in docs/. ADR-001 = Phase 1 baseline. ADR-002 = Phase 2 additions.
+// without an ADR entry in docs/. ADR-001 = Phase 1 baseline. ADR-002 = Phase 2.
+// ADR-003 = Phase 3: Rubric, ScoreCard, JudgeAssignment, JudgeConflict, AlgorithmRun.
+//            Also removed @@unique([teamId, eventId]) from Project to allow the
+//            deliberate duplicate "Dry Harbour" submission from tm_07 per fixtures.json.
 
 generator client {
   provider      = "prisma-client-js"
@@ -49,11 +52,15 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  sessions        Session[]
-  teamMemberships TeamMember[]
-  invitesSent     TeamInvite[] @relation("InviteSentBy")
-  organizedEvents Event[]      @relation("OrganizerEvents")
-  auditLogs       AuditLog[]
+  sessions         Session[]
+  teamMemberships  TeamMember[]
+  invitesSent      TeamInvite[]      @relation("InviteSentBy")
+  organizedEvents  Event[]           @relation("OrganizerEvents")
+  auditLogs        AuditLog[]
+  /// ADR-003: Judge relations
+  judgeAssignments JudgeAssignment[] @relation("JudgeAssignments")
+  scorecards       ScoreCard[]       @relation("JudgeScorecards")
+  judgeConflicts   JudgeConflict[]   @relation("JudgeConflicts")
 }
 
 model Session {
@@ -86,10 +93,13 @@ model Event {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  organizer User      @relation("OrganizerEvents", fields: [organizerId], references: [id])
-  tracks    Track[]
-  teams     Team[]
-  projects  Project[]
+  organizer     User            @relation("OrganizerEvents", fields: [organizerId], references: [id])
+  tracks        Track[]
+  teams         Team[]
+  projects      Project[]
+  /// ADR-003
+  rubrics       Rubric[]
+  algorithmRuns AlgorithmRun[]
 }
 
 model Track {
@@ -109,10 +119,12 @@ model Team {
   eventId   String
   createdAt DateTime @default(now())
 
-  event    Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  members  TeamMember[]
-  invites  TeamInvite[]
-  projects Project[]
+  event     Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  members   TeamMember[]
+  invites   TeamInvite[]
+  projects  Project[]
+  /// ADR-003
+  conflicts JudgeConflict[]
 }
 
 model TeamMember {
@@ -146,7 +158,13 @@ model TeamInvite {
 
 // ─── Submissions (ADR-002: Phase 2) ──────────────────────────────────────────
 
-/// A team's hackathon submission. One project per team per event.
+/// A team's hackathon submission.
+/// ADR-003: Removed @@unique([teamId, eventId]) to allow the deliberate duplicate
+/// "Dry Harbour" submission from tm_07 per fixtures.json. The duplicateOf field
+/// tracks collision: when two projects from the same team share a repo_url, the
+/// second is seeded with duplicateOf pointing to the first. Both appear in gallery;
+/// neither is silently merged or dropped. Organizer sees a DUPLICATE_SUBMISSION
+/// audit event at seed time.
 model Project {
   id          String        @id @default(cuid())
   title       String
@@ -157,22 +175,27 @@ model Project {
   status      ProjectStatus @default(draft)
   /// Set when status transitions to submitted.
   submittedAt DateTime?
-  /// Set when submission is locked (same moment as submittedAt for explicit finalize,
-  /// or when the event's submissionDeadline passes and status is auto-closed by the server).
+  /// Set when submission is locked.
   lockedAt    DateTime?
+  /// ADR-003: set when this project shares a repo_url with another from the same team.
+  duplicateOf String?
 
-  teamId   String
-  eventId  String
-  trackId  String?
+  teamId    String
+  eventId   String
+  trackId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  track       Track?       @relation(fields: [trackId], references: [id])
+  team        Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  event       Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  track       Track?            @relation(fields: [trackId], references: [id])
   mediaAssets MediaAsset[]
+  /// ADR-003
+  assignments JudgeAssignment[]
+  scorecards  ScoreCard[]
 
-  @@unique([teamId, eventId]) // One submission per team per event
+  /// ADR-003: Changed from @@unique to @@index to allow fixture duplicate.
+  @@index([teamId, eventId])
   @@index([eventId, status])
   @@index([teamId])
 }
@@ -193,6 +216,122 @@ model MediaAsset {
   createdAt    DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ─── Judging Engine (ADR-003: Phase 3) ────────────────────────────────────────
+
+/// Rubric defines the weighted criteria used to score projects in an event.
+/// Versioned: if criteria change after judging starts, a new version is created.
+/// Old ScoreCards keep a reference to the rubric version they were scored against.
+model Rubric {
+  id        String   @id @default(cuid())
+  eventId   String
+  version   Int      @default(1)
+  /// Only one rubric per event is active at a time.
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  event      Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  criteria   RubricCriterion[]
+  scorecards ScoreCard[]
+
+  @@index([eventId])
+}
+
+/// A single scoring criterion within a Rubric.
+/// Weights must be positive and sum > 0 (enforced at the service layer).
+model RubricCriterion {
+  id       String @id @default(cuid())
+  rubricId String
+  name     String  // e.g., "functionality", "quality", "innovation" — organizer-configurable
+  weight   Float   // Must be > 0; enforced by rubricService before saving
+  maxScore Int     // e.g., 5; score must be in [1, maxScore]
+  rubric Rubric @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  scores CriterionScore[]
+
+  @@index([rubricId])
+}
+
+/// Records a single judge's assignment to review a project.
+/// Created atomically per AlgorithmRun. Assignments are immutable after creation.
+model JudgeAssignment {
+  id           String   @id @default(cuid())
+  judgeId      String
+  projectId    String
+  eventId      String
+  algorithmRun String   // ID of the AlgorithmRun that produced this
+  assignedAt   DateTime @default(now())
+
+  judge     User       @relation("JudgeAssignments", fields: [judgeId], references: [id])
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scorecard ScoreCard?
+
+  @@unique([judgeId, projectId])
+  @@index([eventId])
+  @@index([judgeId])
+}
+
+/// Records a single run of the assignment algorithm.
+/// Includes version and optional seed for reproducibility and audit.
+model AlgorithmRun {
+  id        String   @id @default(cuid())
+  eventId   String
+  rubricId  String
+  version   String   @default("1.0")
+  seed      String?
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id])
+}
+
+/// A judge's submitted scores for a specific project assignment.
+/// References the exact rubric version in effect at time of submission.
+model ScoreCard {
+  id           String    @id @default(cuid())
+  judgeId      String
+  projectId    String
+  assignmentId String    @unique
+  rubricId     String
+  submittedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  judge      User            @relation("JudgeScorecards", fields: [judgeId], references: [id])
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignment JudgeAssignment @relation(fields: [assignmentId], references: [id])
+  rubric     Rubric          @relation(fields: [rubricId], references: [id])
+  scores     CriterionScore[]
+
+  @@unique([judgeId, projectId])
+  @@index([judgeId])
+}
+
+/// Individual criterion score within a ScoreCard.
+model CriterionScore {
+  id          String @id @default(cuid())
+  scorecardId String
+  criterionId String
+  score       Int    // Must be in [1, criterion.maxScore]
+
+  scorecard ScoreCard       @relation(fields: [scorecardId], references: [id], onDelete: Cascade)
+  criterion RubricCriterion @relation(fields: [criterionId], references: [id])
+
+  @@unique([scorecardId, criterionId])
+}
+
+/// Declared conflict of interest: this judge must not be assigned to this team's projects.
+model JudgeConflict {
+  id        String   @id @default(cuid())
+  judgeId   String
+  teamId    String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  judge User @relation("JudgeConflicts", fields: [judgeId], references: [id])
+  team  Team @relation(fields: [teamId], references: [id])
+
+  @@unique([judgeId, teamId])
+  @@index([eventId])
 }
 
 // ─── Audit ────────────────────────────────────────────────────────────────────

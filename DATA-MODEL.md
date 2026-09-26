@@ -75,7 +75,7 @@ Single-use join link generator.
 ### 4. Submissions & Media (Slice B — ADR-002)
 
 #### `Project`
-A team's hackathon project submission. Enforces a single submission per team per event via `@@unique([teamId, eventId])`.
+A team's hackathon project submission.
 - `id`: CUID identifier.
 - `title`: Project title.
 - `description`: Markdown project description.
@@ -86,6 +86,7 @@ A team's hackathon project submission. Enforces a single submission per team per
 - `teamId`: Foreign key to `Team`.
 - `eventId`: Foreign key to `Event`.
 - `trackId`: Optional foreign key to `Track`.
+- `duplicateOf`: (ADR-003) Optional foreign key indicating this project is a duplicate of another. Added to support the deliberate duplicate submission edge-case in fixtures. Both projects are kept, index is `@@index([teamId, eventId])` rather than `@@unique`.
 
 #### `MediaAsset`
 Locally stored project screenshots. Mitigates remote object-storage complexity and attack surface.
@@ -99,14 +100,34 @@ Locally stored project screenshots. Mitigates remote object-storage complexity a
 
 ---
 
-### 5. Audit & Compliance
+### 5. Judging & Scoring (ADR-003: Phase 3)
+
+#### `Rubric` & `RubricCriterion`
+Defines the scoring rubric for an event.
+- **Versioning**: Rubrics are versioned to preserve historical data. If an organizer alters criteria after judging begins, a new `Rubric` is created. Existing scorecards maintain a foreign key to the specific version used.
+- **Criteria**: Each criterion specifies a positive `weight` and a `maxScore`. Weight enforcement is handled at the service layer.
+
+#### `JudgeAssignment` & `AlgorithmRun`
+- **AlgorithmRun**: Captures the exact version of the matching algorithm and the seed used for reproducibility.
+- **JudgeAssignment**: Immutable pairings linking a `User` (Judge) to a `Project`. Unique composite key on `[judgeId, projectId]`.
+
+#### `ScoreCard` & `CriterionScore`
+- **ScoreCard**: A judge's submission for a single assignment. Contains a relation to the `Rubric` version active at the time. Tracks `submittedAt`.
+- **CriterionScore**: Individual line-item score matching a `RubricCriterion`. Bounded by `[1, maxScore]`.
+
+#### `JudgeConflict`
+- Organizer or judge declared conflict of interest. Prevents matching algorithm from ever assigning a judge to projects owned by a specified `Team`.
+
+---
+
+### 6. Audit & Compliance
 
 #### `AuditLog`
 Immutable transactional record written alongside every non-trivial mutation.
 - `id`: CUID identifier.
 - `actorId`: Foreign key to `User` (or null for public actions).
-- `action`: Audit action code (`EVENT_CREATED`, `USER_REGISTERED`, `TEAM_CREATED`, `TEAM_INVITE_ACCEPTED`, `PROJECT_CREATED`, `PROJECT_UPDATED`, `PROJECT_FINALIZED`, `MEDIA_UPLOADED`).
-- `entityType`: Target entity name (`Event`, `Team`, `Project`, etc.).
+- `action`: Audit action code (`EVENT_CREATED`, `USER_REGISTERED`, `TEAM_CREATED`, `TEAM_INVITE_ACCEPTED`, `PROJECT_CREATED`, `PROJECT_UPDATED`, `PROJECT_FINALIZED`, `MEDIA_UPLOADED`, `DUPLICATE_SUBMISSION`, `SCORES_SUBMITTED`).
+- `entityType`: Target entity name (`Event`, `Team`, `Project`, `ScoreCard`, etc.).
 - `entityId`: Target record ID.
 - `payload`: Structured JSON snapshot of modified values.
 - `createdAt`: Immutable timestamp.

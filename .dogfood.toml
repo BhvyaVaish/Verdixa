@@ -2,19 +2,18 @@
 base_url = "http://localhost:3000"
 
 [tiers]
-claimed = ["T1"]
+claimed = ["T1", "T2"]
 pitch = "VERDIXA is an integrity-first, self-hostable hackathon submission and judging operating system."
 
 [auth]
-organizer = "# not yet generated — seed script lands in Phase 3"
-judge_a = "# not yet generated — seed script lands in Phase 3"
-judge_b = "# not yet generated — seed script lands in Phase 3"
-participant = "# not yet generated — seed script lands in Phase 3"
+organizer = "Cookie: verdixa_session=sess_organizer.f7028ccf2b501b7c0f2b0a7a97b5ca6c74ade1632b1155514aeb98b90ff9eb54"
+judge_a = "Cookie: verdixa_session=sess_jdg_01.224f9c25583134bbc55fbfc63272e07d0db18b257eb80a2f7972626db5c01be5"
+judge_b = "Cookie: verdixa_session=sess_jdg_07.01294e6306d6b7d2d121bdede55c207aab5924fb37d04921fa9bceba0b5e9b2c"
+participant = "Cookie: verdixa_session=sess_participant.dc4d6886bab6ba4fc832d782b66092e5e4fc39e070babefaee7f92d15a52188c"
 
 [routes]
-# Route definitions will be finalized in Phase 3 when judge scoring and export endpoints land
-# gallery = "/gallery"
-# submit = "/api/v1/projects"
-# judge_scores = "/api/v1/scores/me"
-# peer_scores = "/api/v1/scores/me"
-# csv_export = "/api/v1/export/scores.csv"
+gallery = "/api/v1/gallery"
+submit = "/api/v1/projects"
+judge_scores = "/api/v1/scores/judge/user_jdg_01"
+peer_scores = "/api/v1/scores/judge/user_jdg_01"
+csv_export = "/api/v1/export/scores.csv"

@@ -25,10 +25,10 @@ The judging engine core is currently implemented entirely as **pure functions** 
 
 ---
 
-## Planned for Phase 3 (T2 Integration)
+## Phase 3 (T2) Additions
 
-- **Database Schemas:** `Rubric`, `RubricCriterion`, `JudgeAssignment`, `ScoreCard`, `CriterionScore`.
-- **Role Isolation:** Server-enforced protection preventing Judge B from querying Judge A's assigned scorecard or raw scores.
-- **Judge Console:** Live evaluation UI with persistent rubric reference and keyboard-driven scoring.
-- **CSV Export:** Normalized and raw score export for organizers.
-- **Visitor Boundaries:** Unauthenticated visitors remain strictly restricted to the public gallery and cannot access scorecards or rubric details.
+- **Duplicate Submissions**: The system now supports explicit duplicates via the `duplicateOf` relation on the `Project` model. Both projects appear in the gallery and database (e.g. "Dry Harbour"), and the organizer is warned via the AuditLog, preventing data loss.
+- **Role Isolation**: Strictly enforced. Judge B cannot query Judge A's assigned scorecard or raw scores. Any such request immediately returns a 403 Forbidden.
+- **Flat-Rater Flags**: Fully tested and implemented. The flag surfaces `FLAT_RATER` to organizers without quietly overwriting data.
+- **Rubric Versioning**: Implemented in schema. If an organizer changes criteria, a new `Rubric` version is created. Existing scorecards maintain a reference to the exact version they were scored against.
+- **API Endpoints**: Full API suite (`/api/v1/scores/me`, `/api/v1/scores/judge/[judgeId]`, `/api/v1/scores/[assignmentId]`, `/api/v1/export/scores.csv`, `/api/v1/judges/me/assignments`).
