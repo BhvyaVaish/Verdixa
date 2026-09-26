@@ -4,15 +4,16 @@ import { getSession, extractSessionCookie } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest, { params }: { params: { judgeId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ judgeId: string }> }) {
   try {
+    const { judgeId } = await params;
     const session = await getSession(extractSessionCookie(request.headers.get("cookie")));
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Role Isolation: Only the judge themselves OR organizer/admin can view a judge's scores
-    const isOwner = session.userId === params.judgeId;
+    const isOwner = session.userId === judgeId;
     const isOrganizer = session.role === "organizer" || session.role === "admin";
     
     if (!isOwner && !isOrganizer) {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: { judgeId:
     }
 
     const scorecards = await db.scoreCard.findMany({
-      where: { judgeId: params.judgeId },
+      where: { judgeId: judgeId },
       include: {
         project: {
           select: { id: true, title: true, teamId: true }

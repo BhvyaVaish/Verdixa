@@ -120,8 +120,8 @@ export async function createProject(
 
   return db.$transaction(async (tx) => {
     // Check for existing submission (belt-and-suspenders alongside unique constraint)
-    const existing = await tx.project.findUnique({
-      where: { teamId_eventId: { teamId: data.teamId, eventId: data.eventId } },
+    const existing = await tx.project.findFirst({
+      where: { teamId: data.teamId, eventId: data.eventId },
     });
     if (existing) {
       throw new SubmissionServiceError(

@@ -9,8 +9,9 @@ const submitScoresSchema = z.object({
   scores: z.record(z.string(), z.number()) // criterionId -> score
 });
 
-export async function POST(request: NextRequest, { params }: { params: { assignmentId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ assignmentId: string }> }) {
   try {
+    const { assignmentId } = await params;
     const session = await getSession(extractSessionCookie(request.headers.get("cookie")));
     if (!session || session.role !== "judge") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest, { params }: { params: { assignm
     }
 
     const assignment = await db.judgeAssignment.findUnique({
-      where: { id: params.assignmentId }
+      where: { id: assignmentId }
     });
 
     if (!assignment) {
