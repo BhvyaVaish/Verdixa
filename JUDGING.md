@@ -37,3 +37,12 @@ The judging engine core is currently implemented entirely as **pure functions** 
 
 - **Normalization Engine**: Wired the pure math normalization into actual database models using NormalizationRun. Triggering the process outputs ankMovement, correctly flags anomalies (like jdg_07 as FLAT_RATER), and dynamically re-arranges the final leaderboard based on =3$ shrinkage.
 - **Organizer Dashboard**: Live judge assignment coverage, completed vs outstanding progress tracker, and side-by-side Raw vs Normalized score comparisons with a clear Rank Movement indicator.
+
+## Phase 5 Additions
+
+### Voting Mechanism
+Verdixa uses **authenticated voting** (via the existing secure session cookies). 
+- **Rationale**: All participants and judges already have verified accounts. Reusing the session avoids the UX friction and deliverability risk of a secondary email-verification flow, whilst providing a hard account-level deduplication anchor. 
+- **Anti-Abuse**: IP heuristics (SHA-256 hashed for privacy) provide an additional layer of rate-limiting against automated high-frequency abuse.
+- **Bias Prevention**: Results are strictly hidden from non-organizers while the voting window is active, and the project ballot is deterministically shuffled per-voter to eliminate position bias.
+- **Audit Trail**: Every cast vote, retracted vote, posted comment, and moderation action writes an immutable event to the \AuditLog\.

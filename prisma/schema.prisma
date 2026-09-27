@@ -42,6 +42,12 @@ enum ProjectStatus {
   disqualified
 }
 
+/// ADR-004: Phase 5 — community voting and comments
+enum CommentStatus {
+  visible
+  hidden // organizer soft-delete; record kept in DB for audit
+}
+
 // ─── Identity ─────────────────────────────────────────────────────────────────
 
 model User {
@@ -62,6 +68,10 @@ model User {
   judgeAssignments JudgeAssignment[] @relation("JudgeAssignments")
   scorecards       ScoreCard[]       @relation("JudgeScorecards")
   judgeConflicts   JudgeConflict[]   @relation("JudgeConflicts")
+  /// ADR-004: Voting & comments
+  votes            Vote[]            @relation("UserVotes")
+  comments         Comment[]         @relation("UserComments")
+  votingWindows    VotingWindow[]    @relation("VotingWindowCreator")
 }
 
 model Session {
@@ -102,6 +112,8 @@ model Event {
   rubrics            Rubric[]
   algorithmRuns      AlgorithmRun[]
   normalizationRuns  NormalizationRun[]
+  /// ADR-004
+  votingWindows      VotingWindow[]
 }
 
 model Track {
@@ -195,6 +207,9 @@ model Project {
   /// ADR-003
   assignments JudgeAssignment[]
   scorecards  ScoreCard[]
+  /// ADR-004
+  votes       Vote[]
+  comments    Comment[]
 
   /// ADR-003: Changed from @@unique to @@index to allow fixture duplicate.
   @@index([teamId, eventId])
@@ -374,4 +389,90 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([actorId])
+}
+
+// ─── Community Voting (ADR-004: Phase 5) ─────────────────────────────────────
+
+/// Configures the open/close window for community voting on an event.
+/// Organizer creates/closes this to gate votes. Only one active window per event.
+model VotingWindow {
+  id          String    @id @default(cuid())
+  eventId     String
+  opensAt     DateTime
+  closesAt    DateTime
+  /// Results are hidden from non-organizers while window is open.
+  resultsHidden Boolean @default(true)
+  createdBy   String
+  createdAt   DateTime  @default(now())
+
+  event   Event  @relation(fields: [eventId], references: [id])
+  creator User   @relation("VotingWindowCreator", fields: [createdBy], references: [id])
+  votes   Vote[]
+
+  @@index([eventId])
+}
+
+/// One authenticated vote per user per project per voting window.
+/// Soft-immutable — can be retracted by the voter within the window (logged).
+/// Design choice: AUTHENTICATED voting (not link-based or email-gated) because
+/// participants are already registered accounts; reusing the session cookie avoids
+/// a second email-verification flow and its deliverability risk, while still
+/// providing an account-level deduplication anchor. IP heuristics supplement
+/// account uniqueness for unauthenticated abuse paths.
+/// (See JUDGING.md §Voting Mechanism for the full decision rationale.)
+model Vote {
+  id             String   @id @default(cuid())
+  votingWindowId String
+  voterId        String
+  projectId      String
+  /// Snapshot of voter IP at submission time (hashed with SHA-256 for privacy).
+  ipHash         String
+  /// Randomised ballot seed used to order projects for this voter (reproducible per voter).
+  ballotSeed     String
+  createdAt      DateTime @default(now())
+  /// If retracted, the vote is soft-deleted (audit trail preserved).
+  retractedAt    DateTime?
+
+  window  VotingWindow @relation(fields: [votingWindowId], references: [id])
+  voter   User         @relation("UserVotes", fields: [voterId], references: [id])
+  project Project      @relation(fields: [projectId], references: [id])
+
+  @@unique([votingWindowId, voterId, projectId])
+  @@index([votingWindowId])
+  @@index([voterId])
+  @@index([projectId])
+}
+
+/// Rate-limit bucket for unauthenticated or high-frequency vote attempts.
+/// One row per (ip_hash, voting_window_id). Checked before any write.
+/// Falls back to in-process Map when Redis unavailable.
+model VoteRateLimit {
+  id             String   @id @default(cuid())
+  votingWindowId String
+  ipHash         String
+  attempts       Int      @default(1)
+  windowStart    DateTime @default(now())
+  lastAttemptAt  DateTime @default(now())
+
+  @@unique([votingWindowId, ipHash])
+  @@index([votingWindowId])
+}
+
+/// Project comment — authenticated users only.
+model Comment {
+  id        String        @id @default(cuid())
+  projectId String
+  authorId  String
+  body      String        @db.Text
+  status    CommentStatus @default(visible)
+  /// If hidden, reason logged here by organizer.
+  hideReason String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation("UserComments", fields: [authorId], references: [id])
+
+  @@index([projectId])
+  @@index([authorId])
 }
