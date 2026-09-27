@@ -1,6 +1,8 @@
 # VERDIXA
 
-VERDIXA is an integrity-first, self-hostable hackathon submission and judging operating system built for Dogfood 2026. Designed for offline-first resilience with zero external runtime dependencies, it pairs strict backend role isolation, auditable event administration, and tamper-resistant media uploads with a mathematically defensible evaluation engine.
+VERDIXA is an integrity-first, self-hostable hackathon submission and judging operating system. Designed for offline-first resilience with zero external runtime dependencies, it pairs strict backend role isolation, auditable event administration, and tamper-resistant media uploads with a mathematically defensible evaluation engine.
+
+**[Demo Video Placeholder — Link to be added here]**
 
 ## Quick Start (Docker)
 
@@ -12,20 +14,24 @@ docker compose up --build
 
 - **Portal URL:** [http://localhost:3000](http://localhost:3000)
 - **Demo Credentials:**
-  - Admin: `admin@verdixa.dev` / `verdixa2026`
   - Organizer: `organizer@verdixa.dev` / `organizer2026`
-  - *Standard Judge & Participant deterministic tokens are pending Phase 3.*
+  - Judge (Flat-Rater): `judge.07@dogfood2026.dev` / `judge2026`
+  - Participant: `participant@dogfood2026.dev` / `participant2026`
 
-## Current Status (End of Phase G / Post-Phase 2)
+## Current Status
 
-- **Claimed Tier:** **Tier 1 (T1) — Submissions & Public Gallery**
+- **Claimed Tier:** **Tier 1 (T1), Tier 2 (T2), and Tier 3 (T3) fully completed.**
 - **Verified Subsystems:**
-  - **Slice A (Identity & Teams):** Hand-rolled Argon2id password hashing, HMAC-SHA256 signed HttpOnly session cookies, server-enforced role authorization (`visitor`, `participant`, `judge`, `organizer`, `admin`), atomic team formation, and single-use invite tokens.
-  - **Slice B (Submissions & Gallery):** Draft and finalized project submission flow, strict server-clock deadline enforcement, magic-byte (MIME sniffing) upload validation stored on local disk under randomized UUIDs, and an allow-list public gallery DTO.
-  - **Slice C (Judging Core - Pure Math):** Seeded, constraint-satisfaction assignment algorithm with deterministic tie-breaking and local workload balancing; judge-relative z-score normalization with Bayesian reliability shrinkage ($k=3$), and degenerate input handling ($n=1, \text{sd}=0$, flat-rater and extreme-rater anomaly flags).
+  - **Identity & Teams:** Hand-rolled Argon2id password hashing, HMAC-SHA256 signed HttpOnly session cookies, server-enforced role authorization, atomic team formation.
+  - **Submissions & Gallery:** Draft and finalized project submission flow, server-clock deadline enforcement, magic-byte (MIME sniffing) upload validation.
+  - **Judging Core:** Seeded, constraint-satisfaction assignment algorithm with deterministic tie-breaking. Real database-integrated Z-score normalization with Bayesian reliability shrinkage (k=3), flattening degenerate inputs (flat-raters), and emitting anomaly flags for organizer review.
+  - **Workflow & Role Isolation:** Database-persisted scorecards, criterion-based rubrics, live judge console UI, CSV export of normalized scores, and strict read-isolation preventing judges from accessing peer scores.
+  - **Public Trust & Community Voting:** Authenticated voting mechanics, IP rate-limiting, double-vote unique constraints, deterministic ballot shuffling (bias prevention), blind score masking during active windows, community comments with organizer moderation, and a comprehensive AuditLog.
 
-## Known Limitations (What Is Genuinely Not Built Yet)
+## Known Limitations
 
-- **Tier 2 (Judging Workflow & Role Isolation):** Judge onboarding invitation flows, database-persisted scorecards, criterion-based rubrics, live judge console UI, and CSV export of normalized scores are not yet integrated into the database and UI (scheduled for Phase 3).
-- **Tier 3 (Public Trust & Community Voting):** Live voting mechanics, anti-abuse/sybil heuristics, rate-limiting overlays, and public audit trails are planned for Phase 4-5.
-- **Tier 4 (API-First & Polish):** Full OpenAPI specification and embeddable widgets are planned for Phase 6.
+We explicitly cut the following scope items to focus our budget and timeline strictly on the core judging integrity requirements:
+
+- **Pairwise Voting Mode**: Not implemented. We focused exclusively on the rigorous z-score normalization of traditional rubric judging. Pairwise voting adds massive UX surface area and database complexity for what is ultimately a tie-breaker mechanism.
+- **Full OpenAPI / API-First Build**: Not implemented. We built all endpoints logically and securely, but we did not spend our budget wiring up a full Swagger/OpenAPI spec or dedicating time to API-first schema generation.
+- **External Email Dependencies**: We explicitly rejected SMTP/email-gated workflows for both auth and voting to ensure Verdixa can run entirely self-hosted without external third-party mailer configurations breaking.

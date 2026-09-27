@@ -1,6 +1,6 @@
 # VERDIXA Architecture
 
-> **Incremental document** — updated at the end of each phase.
+> **Incremental document** — updated at the end of Phase 5 (Final Hardening).
 > Reference [docs/verdixa-revised-master-blueprint.md](file:///d:/Bhvya%20Vaish%20Documents/Proffesional/Projects/Verdixa/docs/verdixa-revised-master-blueprint.md) for the foundational product identity, architectural constraints, and engineering rationale.
 
 ## System Overview
@@ -40,17 +40,18 @@ VERDIXA is an integrity-first, self-hostable hackathon operating system. Single 
 Verdixa/
 ├── .dogfood.toml                  # Official acceptance configuration
 ├── .gitignore
-├── acceptance-report.txt          # Acceptance verification report (Phase 3+)
+├── acceptance-report.txt          # Acceptance verification report (Phase 1-5)
 ├── docker-compose.yml             # Single-command local environment
 ├── Dockerfile                     # Multi-stage standalone build
 ├── README.md                      # Overview & quick start
 ├── ARCHITECTURE.md                # System design & slice status
 ├── DATA-MODEL.md                  # Active schema documentation
 ├── JUDGING.md                     # Judging engine specification & status
+├── THREAT-MODEL.md                # Anti-abuse and manipulation controls
 ├── LICENSE                        # MIT License
 ├── src/                           # All product code written during the window
 │   ├── app/                       # Next.js App Router (force-dynamic routes)
-│   │   ├── api/v1/                # REST endpoints (auth, events, teams, projects, uploads)
+│   │   ├── api/v1/                # REST endpoints (auth, events, teams, projects, uploads, judging, voting)
 │   │   └── gallery/               # Public gallery server component
 │   ├── components/                # Reusable UI widgets
 │   ├── lib/                       # Infrastructure & cross-cutting utilities
@@ -64,8 +65,8 @@ Verdixa/
 │       ├── teams/                 # Team formation & invite acceptance
 │       ├── submissions/           # Project drafting, finalization, media handling
 │       ├── judging/               # Pure math core: assignment & normalization
-│       ├── voting/                # Community voting scaffolding (Phase 4/5)
-│       └── results/               # Leaderboard & export scaffolding (Phase 4)
+│       ├── voting/                # Community voting mechanics, shuffle algorithm, and rate limiting
+│       └── results/               # Leaderboard & export scaffolding
 ├── prisma/
 │   ├── schema.prisma              # Relational schema
 │   ├── migrations/                # Migration history
@@ -99,5 +100,5 @@ Verdixa/
 |---|---|---|
 | **Slice A — Identity & Teams** | Auth, sessions, roles, event config, team creation, invite links | ✅ **Complete & Verified (T1)** |
 | **Slice B — Submissions & Gallery** | Project drafting, server deadline lock, local uploads, public gallery | ✅ **Complete & Verified (T1)** |
-| **Slice C — Judging Engine** | Assignment algorithm, rubrics, scorecards, normalization math, anomaly flags | 🟡 **Math Core Complete (Pure Functions)**<br>⏳ **DB/UI Integration in Phase 3 (T2)** |
-| **Slice D — Public Trust Layer** | Voting, audit log surfacing, anti-abuse heuristics | ⏳ **Phase 4-5 (T3)** |
+| **Slice C — Judging Engine** | Assignment algorithm, rubrics, scorecards, normalization math, anomaly flags | ✅ **Complete & Verified (T2)** |
+| **Slice D — Public Trust Layer** | Voting, audit log surfacing, anti-abuse heuristics | ✅ **Complete & Verified (T3)** |

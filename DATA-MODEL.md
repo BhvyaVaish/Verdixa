@@ -1,7 +1,7 @@
 # VERDIXA — Data Model Documentation
 
 > Canonical field-level documentation for the active Prisma schema.
-> Current through **Phase 1-2 (T1 Core)**. Updated incrementally at the conclusion of each phase.
+> Current through **Phase 5 (Final Build)**.
 
 ---
 
@@ -86,13 +86,13 @@ A team's hackathon project submission.
 - `teamId`: Foreign key to `Team`.
 - `eventId`: Foreign key to `Event`.
 - `trackId`: Optional foreign key to `Track`.
-- `duplicateOf`: (ADR-003) Optional foreign key indicating this project is a duplicate of another. Added to support the deliberate duplicate submission edge-case in fixtures. Both projects are kept, index is `@@index([teamId, eventId])` rather than `@@unique`.
+- `duplicateOf`: (ADR-003) Optional foreign key indicating this project is a duplicate of another. Both projects are kept, index is `@@index([teamId, eventId])` rather than `@@unique`.
 
 #### `MediaAsset`
 Locally stored project screenshots. Mitigates remote object-storage complexity and attack surface.
 - `id`: CUID identifier.
 - `projectId`: Foreign key to `Project`.
-- `filename`: Randomized UUID string (e.g. `a1b2c3d4-e5f6.webp`) preventing path traversal and script execution.
+- `filename`: Randomized UUID string preventing path traversal and script execution.
 - `originalName`: User-supplied filename stored purely for UI display.
 - `mimeType`: Sniffed from first 8 magic bytes; untrusted client `Content-Type` is discarded.
 - `sizeBytes`: Enforced server-side against a 5MB maximum limit.
@@ -100,7 +100,7 @@ Locally stored project screenshots. Mitigates remote object-storage complexity a
 
 ---
 
-### 5. Judging & Scoring (ADR-003: Phase 3)
+### 5. Judging & Scoring (ADR-003 & ADR-004: Phase 3-4)
 
 #### `Rubric` & `RubricCriterion`
 Defines the scoring rubric for an event.
@@ -118,16 +118,45 @@ Defines the scoring rubric for an event.
 #### `JudgeConflict`
 - Organizer or judge declared conflict of interest. Prevents matching algorithm from ever assigning a judge to projects owned by a specified `Team`.
 
+#### `NormalizationRun`
+Persisted output of the normalization algorithm (z-score scaling with k=3 shrinkage).
+- `eventId`: Target event.
+- `algorithmVersion`: Which normalization script ran.
+- `parametersJson`: Settings (like k=3) used during computation.
+- `outputJson`: The full resulting structure including rank adjustments and flags (like `FLAT_RATER`).
+- `triggeredBy`: Who requested the computation.
+
 ---
 
-### 6. Audit & Compliance
+### 6. Public Trust & Voting (ADR-004: Phase 5)
+
+#### `VotingWindow`
+- Defines the active window for community voting.
+- Enforces strict server-side timestamps (`opensAt`, `closesAt`).
+- `resultsHidden`: Boolean preventing visibility of live counts to non-organizers.
+
+#### `Vote`
+- `votingWindowId`, `voterId`, `projectId`: Represents a single vote.
+- A `@@unique([votingWindowId, voterId, projectId])` constraint inherently blocks duplicate votes per user.
+- `ipHash`: Hashed IP address mapping, used for secondary rate limiting.
+
+#### `VoteRateLimit`
+- Tracks rolling vote attempts per `ipHash` and `votingWindowId` to throttle bot attacks even if accounts are rotated.
+
+#### `Comment`
+- `status`: Enum (`visible`, `hidden`) mapping to the organizer moderation state.
+- `hideReason`: Reason documented during the moderation audit action.
+
+---
+
+### 7. Audit & Compliance
 
 #### `AuditLog`
 Immutable transactional record written alongside every non-trivial mutation.
 - `id`: CUID identifier.
 - `actorId`: Foreign key to `User` (or null for public actions).
-- `action`: Audit action code (`EVENT_CREATED`, `USER_REGISTERED`, `TEAM_CREATED`, `TEAM_INVITE_ACCEPTED`, `PROJECT_CREATED`, `PROJECT_UPDATED`, `PROJECT_FINALIZED`, `MEDIA_UPLOADED`, `DUPLICATE_SUBMISSION`, `SCORES_SUBMITTED`).
-- `entityType`: Target entity name (`Event`, `Team`, `Project`, `ScoreCard`, etc.).
+- `action`: Audit action code (e.g. `EVENT_CREATED`, `SCORES_SUBMITTED`, `VOTING_WINDOW_CREATED`, `COMMENT_HIDDEN`).
+- `entityType`: Target entity name.
 - `entityId`: Target record ID.
 - `payload`: Structured JSON snapshot of modified values.
 - `createdAt`: Immutable timestamp.
