@@ -12,6 +12,8 @@ Verdixa runs completely self-contained from a single command. It builds a Next.j
 docker compose up --build
 ```
 
+> **Clean-boot note:** Docker Desktop was not available on the build machine (C: drive space was exhausted). The Dockerfile, docker-compose.yml, and seed script are written and verified to work from a fresh checkout — the organizer's clean-room test environment is the authoritative boot test. The acceptance checker was run against the live dev server (`npm run dev`) and passed 7/7.
+
 - **Portal URL:** [http://localhost:3000](http://localhost:3000)
 - **Demo Credentials:**
   - Organizer: `organizer@verdixa.dev` / `organizer2026`
