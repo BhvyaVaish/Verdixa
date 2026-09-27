@@ -6,10 +6,15 @@
 set -e
 
 echo "[entrypoint] Running database migrations..."
-npx prisma migrate deploy --schema=./prisma/schema.prisma
+if [ -f "./prisma/migrations/migration_lock.toml" ]; then
+  npx prisma migrate deploy --schema=./prisma/schema.prisma
+else
+  echo "[entrypoint] No formal migrations found, syncing schema with db push..."
+  npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss
+fi
 
 echo "[entrypoint] Running idempotent seed..."
-node --import tsx/esm ./prisma/seed.ts || npx tsx ./prisma/seed.ts
+npx tsx ./prisma/seed.ts
 
 echo "[entrypoint] Starting application..."
 exec "$@"
