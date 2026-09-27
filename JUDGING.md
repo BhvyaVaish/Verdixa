@@ -32,3 +32,8 @@ The judging engine core is currently implemented entirely as **pure functions** 
 - **Flat-Rater Flags**: Fully tested and implemented. The flag surfaces `FLAT_RATER` to organizers without quietly overwriting data.
 - **Rubric Versioning**: Implemented in schema. If an organizer changes criteria, a new `Rubric` version is created. Existing scorecards maintain a reference to the exact version they were scored against.
 - **API Endpoints**: Full API suite (`/api/v1/scores/me`, `/api/v1/scores/judge/[judgeId]`, `/api/v1/scores/[assignmentId]`, `/api/v1/export/scores.csv`, `/api/v1/judges/me/assignments`).
+
+## Phase 4 Additions
+
+- **Normalization Engine**: Wired the pure math normalization into actual database models using NormalizationRun. Triggering the process outputs ankMovement, correctly flags anomalies (like jdg_07 as FLAT_RATER), and dynamically re-arranges the final leaderboard based on =3$ shrinkage.
+- **Organizer Dashboard**: Live judge assignment coverage, completed vs outstanding progress tracker, and side-by-side Raw vs Normalized score comparisons with a clear Rank Movement indicator.

@@ -99,8 +99,9 @@ model Event {
   teams         Team[]
   projects      Project[]
   /// ADR-003
-  rubrics       Rubric[]
-  algorithmRuns AlgorithmRun[]
+  rubrics            Rubric[]
+  algorithmRuns      AlgorithmRun[]
+  normalizationRuns  NormalizationRun[]
 }
 
 model Track {
@@ -318,6 +319,26 @@ model CriterionScore {
   criterion RubricCriterion @relation(fields: [criterionId], references: [id])
 
   @@unique([scorecardId, criterionId])
+}
+
+/// Stores a persisted normalization run result (inputs + outputs) for audit.
+/// Never recomputed silently — organizer triggers explicitly.
+model NormalizationRun {
+  id          String   @id @default(cuid())
+  eventId     String
+  rubricId    String
+  /// JSON: the judgeScoreMap inputs used
+  inputsJson  Json
+  /// JSON: the NormalizationResult output (normalizedScores + flags)
+  outputJson  Json
+  /// k constant used (SHRINKAGE_K)
+  shrinkageK  Int      @default(3)
+  createdAt   DateTime @default(now())
+  createdBy   String   // organizer userId
+
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@index([eventId])
 }
 
 /// Declared conflict of interest: this judge must not be assigned to this team's projects.
