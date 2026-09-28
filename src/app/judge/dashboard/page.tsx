@@ -20,7 +20,7 @@ async function JudgeAssignments() {
     where: { judgeId: session.userId },
     include: {
       project: { include: { track: true } },
-      scoreCard: true
+      scorecard: true
     }
   });
 
@@ -46,7 +46,7 @@ async function JudgeAssignments() {
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {assignments.map((assignment) => {
-            const isScored = assignment.scoreCard !== null;
+            const isScored = assignment.scorecard !== null;
             return (
               <tr key={assignment.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
