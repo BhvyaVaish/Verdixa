@@ -62,6 +62,29 @@ Use these credentials to log in and explore different role-based views at `http:
 
 ---
 
+## 🧭 Application Walkthrough
+
+Verdixa is split into three main role-based experiences:
+
+### 1. Organizer Experience (Admin)
+- **Role**: `organizer@verdixa.dev`
+- **Dashboard**: Organizers access a central dashboard to monitor the entire hackathon.
+- **Judge Progress**: They can track which judges are slacking and which have completed their assigned project evaluations.
+- **Run Normalization**: This is Verdixa's core mathematical engine. Instead of just taking the average of scores (which is easily ruined if one judge votes 0/10 for everyone and another votes 10/10 for everyone), Verdixa runs a Z-Score Normalization algorithm with Bayesian shrinkage. It detects "Flat-Rater" judges and mathematically neutralizes their bias so the final rankings are purely based on quality.
+- **Anomaly Flags**: The dashboard automatically flags suspicious voting patterns (e.g., a judge scoring every project identically).
+
+### 2. Judge Experience
+- **Role**: `judge.07@dogfood2026.dev` (Example)
+- **Dashboard**: Judges have a dedicated assignment board (`/judge/dashboard`).
+- **Isolation**: Judges can only see the projects they are explicitly assigned to. Furthermore, strict backend role-isolation ensures a judge can *never* view the scores submitted by other judges, preventing herd mentality or peer pressure.
+
+### 3. Participant Experience
+- **Role**: `participant@verdixa.dev`
+- **Dashboard**: Participants access the Public Gallery (`/gallery`).
+- **Features**: They can view all finalized submissions across various tracks, complete with dynamic fetching from the secure backend. They can also securely submit their projects (simulated via API in the acceptance tests to enforce strict deadlines).
+
+---
+
 ## ⚠️ Known Limitations (Scope Cuts)
 
 We explicitly cut the following scope items to focus our budget and timeline strictly on the core judging integrity requirements:
