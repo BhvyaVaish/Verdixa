@@ -30,9 +30,10 @@ export default function LoginPage() {
       // Redirect based on role
       if (data.role === "organizer") {
         window.location.href = "/organizer/dashboard";
+      } else if (data.role === "judge") {
+        window.location.href = "/judge/dashboard";
       } else {
-        // Participants and Judges default to the Gallery 
-        // (Their specific dashboards were kept API-only as per scope constraints)
+        // Participants default to the Gallery 
         window.location.href = "/gallery";
       }
     } catch (err: any) {
@@ -90,7 +91,7 @@ export default function LoginPage() {
           <ul className="text-xs text-gray-500 space-y-1">
             <li><span className="font-mono bg-gray-100 p-1 rounded">organizer@verdixa.dev</span> / <span className="font-mono bg-gray-100 p-1 rounded">verdixa2026</span></li>
             <li><span className="font-mono bg-gray-100 p-1 rounded">judge.07@dogfood2026.dev</span> / <span className="font-mono bg-gray-100 p-1 rounded">verdixa2026</span></li>
-            <li><span className="font-mono bg-gray-100 p-1 rounded">participant@dogfood2026.dev</span> / <span className="font-mono bg-gray-100 p-1 rounded">verdixa2026</span></li>
+            <li><span className="font-mono bg-gray-100 p-1 rounded">participant@verdixa.dev</span> / <span className="font-mono bg-gray-100 p-1 rounded">verdixa2026</span></li>
           </ul>
         </div>
       </div>
