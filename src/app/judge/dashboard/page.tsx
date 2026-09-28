@@ -76,9 +76,9 @@ async function JudgeAssignments() {
                   {isScored ? (
                     <span className="text-gray-400">Locked</span>
                   ) : (
-                    <button className="text-indigo-600 hover:text-indigo-900 font-semibold bg-indigo-50 px-3 py-1.5 rounded hover:bg-indigo-100 transition-colors">
+                    <a href={`/judge/evaluate/${assignment.id}`} className="text-indigo-600 hover:text-indigo-900 font-semibold bg-indigo-50 px-3 py-1.5 rounded hover:bg-indigo-100 transition-colors inline-block">
                       Evaluate &rarr;
-                    </button>
+                    </a>
                   )}
                 </td>
               </tr>
