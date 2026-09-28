@@ -80,9 +80,9 @@ export default function LoginPage() {
         <div className="mt-6 border-t pt-4">
           <p className="text-sm text-gray-600 mb-2 font-semibold">Demo Accounts:</p>
           <ul className="text-xs text-gray-500 space-y-1">
-            <li><span className="font-mono bg-gray-100 p-1 rounded">organizer@verdixa.dev</span> / <span className="font-mono bg-gray-100 p-1 rounded">organizer2026</span></li>
-            <li><span className="font-mono bg-gray-100 p-1 rounded">judge.07@dogfood2026.dev</span> / <span className="font-mono bg-gray-100 p-1 rounded">judge2026</span></li>
-            <li><span className="font-mono bg-gray-100 p-1 rounded">participant@dogfood2026.dev</span> / <span className="font-mono bg-gray-100 p-1 rounded">participant2026</span></li>
+            <li><span className="font-mono bg-gray-100 p-1 rounded">organizer@verdixa.dev</span> / <span className="font-mono bg-gray-100 p-1 rounded">verdixa2026</span></li>
+            <li><span className="font-mono bg-gray-100 p-1 rounded">judge.07@dogfood2026.dev</span> / <span className="font-mono bg-gray-100 p-1 rounded">verdixa2026</span></li>
+            <li><span className="font-mono bg-gray-100 p-1 rounded">participant@dogfood2026.dev</span> / <span className="font-mono bg-gray-100 p-1 rounded">verdixa2026</span></li>
           </ul>
         </div>
       </div>

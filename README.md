@@ -43,9 +43,9 @@ If you do not have Docker installed or want to view the app immediately:
 
 Use these credentials to log in and explore different role-based views at `http://localhost:3000`:
 
-- **Organizer:** `organizer@verdixa.dev` / `organizer2026`
-- **Judge (Flat-Rater Example):** `judge.07@dogfood2026.dev` / `judge2026`
-- **Participant:** `participant@dogfood2026.dev` / `participant2026`
+- **Organizer:** `organizer@verdixa.dev` / `verdixa2026`
+- **Judge (Flat-Rater Example):** `judge.07@dogfood2026.dev` / `verdixa2026`
+- **Participant:** `participant@dogfood2026.dev` / `verdixa2026`
 
 ---
 
