@@ -25,8 +25,16 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
-      // Automatically redirect to the organizer dashboard on success
-      window.location.href = "/organizer/dashboard";
+      const data = await res.json();
+      
+      // Redirect based on role
+      if (data.role === "organizer") {
+        window.location.href = "/organizer/dashboard";
+      } else {
+        // Participants and Judges default to the Gallery 
+        // (Their specific dashboards were kept API-only as per scope constraints)
+        window.location.href = "/gallery";
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
