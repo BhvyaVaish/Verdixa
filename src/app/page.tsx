@@ -15,6 +15,13 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-10">
           <Link 
+            href="/login" 
+            className="rounded-lg bg-gray-900 px-6 py-4 text-base font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors sm:col-span-2"
+          >
+            Login to Verdixa
+            <p className="text-sm font-normal text-gray-400 mt-1">Access judge and organizer tools</p>
+          </Link>
+          <Link 
             href="/gallery" 
             className="rounded-lg bg-blue-600 px-6 py-4 text-base font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
           >
