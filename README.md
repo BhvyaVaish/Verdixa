@@ -45,7 +45,7 @@ Use these credentials to log in and explore different role-based views at `http:
 
 - **Organizer:** `organizer@verdixa.dev` / `verdixa2026`
 - **Judge (Flat-Rater Example):** `judge.07@dogfood2026.dev` / `verdixa2026`
-- **Participant:** `participant@dogfood2026.dev` / `verdixa2026`
+- **Participant:** `participant@verdixa.dev` / `verdixa2026`
 
 ---
 
